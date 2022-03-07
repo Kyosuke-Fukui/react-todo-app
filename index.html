@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React Todo-App</title>
+    <!-- React では殆どの場合、 JSX と呼ばれる JavaScript 構文の拡張を使います。
+    JSX はそのままではブラウザが理解できないので Babel というコンパイラを使って JavaScript に変換する必要があります。 -->
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://unpkg.com/react@15/dist/react.js"></script>
+    <script src="https://unpkg.com/react-dom@15/dist/react-dom.js"></script>
+    <style>
+        .todo-form {
+            width: 360px;
+            margin: 2rem auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const DEFAULT_TODOS = [
+            {
+                title: "React は、DOM 操作を効率的に行うしくみを内部に持っています。React が備える DOM 操作の特徴は、仮想 DOM（Virtual DOM）データと UI の同期が挙げられます。そして、React の構文は、コンポーネント指向の開発スタイルを可能にします。これは処理的な無駄のなさやパフォーマンスというより、論理的な設計面で意義のある点でしょう。"
+            },
+            {
+                title: "React を使うと、「コンポーネント」がコードをまとめる単位になります。設計指標、つまりコードを整理する基準の存在は、本格的なアプリケーションを構築するうえで重要です。React では直接的な DOM 操作をコーディングしません。props（属性）や state（状態）といった React が管理するデータを更新することで、あとは React が処理してくれます。React では、div や p のような HTML ネイティブな要素に留まらず、独自要素を作ることもできます。独自要素は、コンポーネントとも呼ばれ、関数として定義します。"
+            },
+        ]
+
+        // props：親から子へ渡される属性値
+        // state：子の内部状態
+
+        //TodoFormコンポーネント
+        function TodoForm(props) {
+            return (
+                <form className="todo-form" onSubmit={props.onSubmit}>
+                    <label>
+                        新しいTodo：
+                        <input
+                            onChange={props.onChange}
+                            value={props.value}
+                        />
+                    </label>
+                    <button type="submit">追加する</button>
+                </form>
+            )
+        }
+
+        //Todoコンポーネント
+        function Todo(props) {
+            return (
+                <li className="todo-item">
+                    <input
+                        type="checkbox"
+                        checked={props.todo.completed}
+                        onChange={() => props.onToggle(props.todo)}
+                    />
+                    <span
+                        // Reactでインラインスタイルを利用する場合は、CSSのプロパティ名をtextDecoration、backgroundColor等のcamelCaseで指定します。
+                        style={{ textDecoration: props.todo.completed ? "underline #FF3028" : "" }}
+                    >
+                        {props.todo.title}
+                    </span>
+                    <button onClick={() => props.onRemove(props.todo)}>削除</button>
+                </li>
+            )
+        }
+
+        //TodoListコンポーネント
+        function TodoList(props) {
+            // ループ処理で JSX を記述する場合、繰り返し生成される要素には key プロパティが必要です。
+            // key は、React が DOM 生成を最適化するのに使用します。
+            const todoList = props.todos.map((todo, index) => {
+                return (
+                    <Todo
+                        key={index}
+                        //ここでprops.todoを設定
+                        todo={todo}
+                        onToggle={props.onToggle}
+                        onRemove={props.onRemove}
+                    />
+                )
+            })
+
+            return (
+                <ul className="todo-list">{todoList}</ul>
+            )
+        }
+
+
+
+        //Appコンポーネント
+        class App extends React.Component {
+            // 最上位なので実際にpropsが渡されることはない
+            constructor(props) {
+                super(props)
+                //Stateを初期化
+                this.state = {
+                    todos: DEFAULT_TODOS,
+                    newTodo: ""
+                }
+
+                this.onChange = this.onChange.bind(this)
+                this.onSubmit = this.onSubmit.bind(this)
+                this.onToggle = this.onToggle.bind(this)
+                this.onRemove = this.onRemove.bind(this)
+            }
+
+            onSubmit(e) {
+                //フォーム送信を防ぐ
+                e.preventDefault()
+
+                const { newTodo, todos } = this.state
+
+                //値が空の場合は何もしない
+                if (!newTodo.trim()) { return }
+
+                const newTodos = todos.slice() //配列をコピー
+                newTodos.push({
+                    title: newTodo,
+                    completed: false
+                })
+
+                //Stateを変更
+                this.setState({
+                    todos: newTodos,
+                    newtodo: ""
+                })
+            }
+
+            onToggle(todo) {
+                const { todos } = this.state
+                const index = todos.indexOf(todo)
+
+                if (index > -1) {
+                    let newTodos = todos.slice()
+                    todo.completed = !todo.completed
+                    newTodos.splice(index, 1, todo) //所定のTodoを置き換える
+                    this.setState({ todos: newTodos })
+                }
+            }
+
+            onRemove(todo) {
+                const { todos } = this.state
+                const index = todos.indexOf(todo)
+
+                if (index > -1) {
+                    let newTodos = todos.slice()
+                    newTodos.splice(index, 1) //所定のTodoを削除
+                    this.setState({ todos: newTodos })
+                }
+            }
+
+            onChange(e) {
+                const { value } = e.target
+                this.setState({ newTodo: value })
+            }
+
+            render() {
+                return (
+                    <div className="todo">
+                        <TodoForm
+                            //AppのStateを子コンポーネントに渡す
+                            value={this.state.newTodo}
+                            onChange={this.onChange}
+                            onSubmit={this.onSubmit}
+                        />
+                        <TodoList
+                            todos={this.state.todos}
+                            onToggle={this.onToggle}
+                            onRemove={this.onRemove}
+                        />
+                    </div>
+                )
+            }
+        }
+
+        ReactDOM.render(
+            <App />,
+            document.getElementById("root")
+        )
+    </script>
+
+</body>
+
+</html>
